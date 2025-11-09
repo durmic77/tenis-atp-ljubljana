@@ -96,34 +96,47 @@
 
         /* MOBILE OPTIMIZACIJA */
         @media (max-width: 768px) {
-            /* Tabela - optimizirana za mobile z vsemi stolpci */
+            /* Tabela - popolnoma optimizirana za mobile */
+            .overflow-x-auto {
+                overflow-x: visible !important;
+            }
+            
             #rankingTable {
-                font-size: 0.7rem;
+                font-size: 0.75rem;
+                width: 100% !important;
             }
+            
             #rankingTable td, #rankingTable th {
-                padding: 8px 3px;
-                white-space: nowrap;
+                padding: 10px 4px;
+                text-align: center;
             }
-            /* Manjša širina stolpcev za mobile */
+            
+            /* Centriranje vsebine */
             #rankingTable th:nth-child(1), 
             #rankingTable td:nth-child(1) {
                 width: 15%;
+                text-align: center;
             }
             #rankingTable th:nth-child(2), 
             #rankingTable td:nth-child(2) {
-                width: 35%;
+                width: 30%;
+                text-align: left;
+                padding-left: 8px;
             }
             #rankingTable th:nth-child(3), 
             #rankingTable td:nth-child(3) {
                 width: 20%;
+                text-align: center;
             }
             #rankingTable th:nth-child(4), 
             #rankingTable td:nth-child(4) {
-                width: 15%;
+                width: 17.5%;
+                text-align: center;
             }
             #rankingTable th:nth-child(5), 
             #rankingTable td:nth-child(5) {
-                width: 15%;
+                width: 17.5%;
+                text-align: center;
             }
 
             /* Input polja za rezultate - VEČJA */
@@ -167,6 +180,11 @@
             body {
                 padding: 0.5rem !important;
             }
+            
+            /* Skrij horizontalni scroll indikator */
+            .overflow-x-auto::-webkit-scrollbar {
+                display: none;
+            }
         }
 
         /* Desktop ostane popolnoma enak */
@@ -202,14 +220,14 @@
         <div class="bg-gray-800 p-6 rounded-xl shadow-2xl mb-8">
             <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Aktivna Lestvica</h2>
             <div class="overflow-x-auto">
-                <table class="min-w-full text-sm rounded-lg overflow-hidden">
+                <table class="w-full text-sm rounded-lg">
                     <thead>
-                        <tr class="table-header uppercase text-left">
-                            <th class="py-3 px-4 rounded-tl-lg">Mesto</th>
-                            <th class="py-3 px-4">Igralec</th>
-                            <th class="py-3 px-4">ELO</th>
-                            <th class="py-3 px-4">Zmage</th>
-                            <th class="py-3 px-4 rounded-tr-lg">Porazi</th>
+                        <tr class="table-header uppercase">
+                            <th class="py-3 px-2 rounded-tl-lg">Mesto</th>
+                            <th class="py-3 px-2">Igralec</th>
+                            <th class="py-3 px-2">ELO</th>
+                            <th class="py-3 px-2">Zmage</th>
+                            <th class="py-3 px-2 rounded-tr-lg">Porazi</th>
                         </tr>
                     </thead>
                     <tbody id="rankingTable">
@@ -338,6 +356,9 @@
         </div>
 
     </div>
+
+    <!-- GLAVNA JS LOGIKA -->
+    <!-- [OSTALA JS KODA OSTANE ENAKA - samo kopiraj iz prejšnje kode] -->
 
     <!-- GLAVNA JS LOGIKA -->
     <script type="module">
@@ -864,3 +885,4 @@
     </script>
 </body>
 </html>
+
