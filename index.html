@@ -96,19 +96,34 @@
 
         /* MOBILE OPTIMIZACIJA */
         @media (max-width: 768px) {
-            /* Tabela - brez horizontalnega scrolla */
+            /* Tabela - optimizirana za mobile z vsemi stolpci */
             #rankingTable {
-                font-size: 0.75rem;
+                font-size: 0.7rem;
             }
             #rankingTable td, #rankingTable th {
-                padding: 10px 4px;
+                padding: 8px 3px;
                 white-space: nowrap;
             }
+            /* Manjša širina stolpcev za mobile */
+            #rankingTable th:nth-child(1), 
+            #rankingTable td:nth-child(1) {
+                width: 15%;
+            }
+            #rankingTable th:nth-child(2), 
+            #rankingTable td:nth-child(2) {
+                width: 35%;
+            }
+            #rankingTable th:nth-child(3), 
+            #rankingTable td:nth-child(3) {
+                width: 20%;
+            }
             #rankingTable th:nth-child(4), 
-            #rankingTable td:nth-child(4),
-            #rankingTable th:nth-child(5),
+            #rankingTable td:nth-child(4) {
+                width: 15%;
+            }
+            #rankingTable th:nth-child(5), 
             #rankingTable td:nth-child(5) {
-                display: none;
+                width: 15%;
             }
 
             /* Input polja za rezultate - VEČJA */
@@ -192,9 +207,9 @@
                         <tr class="table-header uppercase text-left">
                             <th class="py-3 px-4 rounded-tl-lg">Mesto</th>
                             <th class="py-3 px-4">Igralec</th>
-                            <th class="py-3 px-4">Točke (ELO)</th>
-                            <th class="py-3 px-4 hidden md:table-cell">Zmage</th>
-                            <th class="py-3 px-4 rounded-tr-lg hidden md:table-cell">Porazi</th>
+                            <th class="py-3 px-4">ELO</th>
+                            <th class="py-3 px-4">Zmage</th>
+                            <th class="py-3 px-4 rounded-tr-lg">Porazi</th>
                         </tr>
                     </thead>
                     <tbody id="rankingTable">
@@ -606,8 +621,8 @@
                     <td class="py-3 px-4 font-bold text-lg text-primary">${rank}.</td>
                     <td class="py-3 px-4 font-medium cursor-pointer hover:text-primary transition" onclick="window.filterHistoryByPlayer('${player.id}')">${playerName}</td>
                     <td class="py-3 px-4 font-semibold text-secondary">${player.rating}</td>
-                    <td class="py-3 px-4 text-emerald-400 hidden md:table-cell">${player.wins}</td>
-                    <td class="py-3 px-4 text-red-400 hidden md:table-cell">${player.losses}</td>
+                    <td class="py-3 px-4 text-emerald-400">${player.wins}</td>
+                    <td class="py-3 px-4 text-red-400">${player.losses}</td>
                 `;
                 tableBody.appendChild(row);
             });
