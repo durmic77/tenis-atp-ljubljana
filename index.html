@@ -93,6 +93,71 @@
         .status-hidden {
             display: none;
         }
+
+        /* MOBILE OPTIMIZACIJA */
+        @media (max-width: 768px) {
+            /* Tabela - brez horizontalnega scrolla */
+            #rankingTable {
+                font-size: 0.75rem;
+            }
+            #rankingTable td, #rankingTable th {
+                padding: 10px 4px;
+                white-space: nowrap;
+            }
+            #rankingTable th:nth-child(4), 
+            #rankingTable td:nth-child(4),
+            #rankingTable th:nth-child(5),
+            #rankingTable td:nth-child(5) {
+                display: none;
+            }
+
+            /* Input polja za rezultate - VEČJA */
+            input[type="number"] {
+                min-height: 44px !important;
+                font-size: 18px !important;
+                padding: 10px 6px !important;
+                background: #4b5563 !important;
+                border: 2px solid #6b7280 !important;
+                color: white !important;
+                width: 100% !important;
+            }
+            
+            /* Placeholder text bolj viden */
+            input::placeholder {
+                color: #d1d5db !important;
+                font-size: 14px;
+                opacity: 0.8;
+            }
+
+            /* Set inputs v en stolpec na mobile */
+            .grid-cols-3 {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
+            }
+            
+            /* Vsak set dobi več prostora */
+            .grid-cols-3 > div {
+                padding: 14px;
+                background: #374151;
+                border-radius: 10px;
+                margin-bottom: 8px;
+            }
+
+            /* Boljši spacing za mobile */
+            .bg-gray-800 {
+                padding: 1rem !important;
+            }
+
+            /* Manjši padding za mobile */
+            body {
+                padding: 0.5rem !important;
+            }
+        }
+
+        /* Desktop ostane popolnoma enak */
+        @media (min-width: 769px) {
+            /* Vse ostane kot je */
+        }
     </style>
     <script>
         tailwind.config = {
@@ -128,8 +193,8 @@
                             <th class="py-3 px-4 rounded-tl-lg">Mesto</th>
                             <th class="py-3 px-4">Igralec</th>
                             <th class="py-3 px-4">Točke (ELO)</th>
-                            <th class="py-3 px-4">Zmage</th>
-                            <th class="py-3 px-4 rounded-tr-lg">Porazi</th>
+                            <th class="py-3 px-4 hidden md:table-cell">Zmage</th>
+                            <th class="py-3 px-4 rounded-tr-lg hidden md:table-cell">Porazi</th>
                         </tr>
                     </thead>
                     <tbody id="rankingTable">
@@ -174,34 +239,34 @@
             <!-- Rezultat po setih -->
             <div class="mb-6">
                 <label class="block text-sm font-medium mb-2 text-gray-300">Rezultat po Setih (Zmaga-Poraz):</label>
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- Set 1 -->
                     <div class="flex items-center space-x-2 bg-gray-700 p-2 rounded-lg">
                         <span class="text-gray-400 font-medium">Set 1:</span>
-                        <input type="number" id="set1WinnerScore" placeholder="Zmag." class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
+                        <input type="number" id="set1WinnerScore" placeholder="Zmag" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
                         <span class="text-gray-400">-</span>
-                        <input type="number" id="set1LoserScore" placeholder="Por." class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
+                        <input type="number" id="set1LoserScore" placeholder="Por" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
                     </div>
                     <!-- Set 2 -->
                     <div class="flex items-center space-x-2 bg-gray-700 p-2 rounded-lg">
                         <span class="text-gray-400 font-medium">Set 2:</span>
-                        <input type="number" id="set2WinnerScore" placeholder="Zmag." class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
+                        <input type="number" id="set2WinnerScore" placeholder="Zmag" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
                         <span class="text-gray-400">-</span>
-                        <input type="number" id="set2LoserScore" placeholder="Por." class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
+                        <input type="number" id="set2LoserScore" placeholder="Por" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
                     </div>
                     <!-- Set 3 (Opcijsko) -->
                     <div class="flex items-center space-x-2 bg-gray-700 p-2 rounded-lg">
                         <span class="text-gray-400 font-medium">Set 3:</span>
-                        <input type="number" id="set3WinnerScore" placeholder="Zmag." class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
+                        <input type="number" id="set3WinnerScore" placeholder="Zmag" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
                         <span class="text-gray-400">-</span>
-                        <input type="number" id="set3LoserScore" placeholder="Por." class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
+                        <input type="number" id="set3LoserScore" placeholder="Por" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
                     </div>
                 </div>
                 <p class="text-xs text-gray-400 mt-2">Vnesite samo številke. Pustite prazno, če se set ni igral.</p>
             </div>
 
             <!-- Datum in Podlaga (v dveh stolpcih) -->
-            <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                     <label for="matchDateInput" class="block text-sm font-medium mb-1 text-gray-300">Datum:</label>
                     <input type="date" id="matchDateInput" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary transition">
@@ -541,8 +606,8 @@
                     <td class="py-3 px-4 font-bold text-lg text-primary">${rank}.</td>
                     <td class="py-3 px-4 font-medium cursor-pointer hover:text-primary transition" onclick="window.filterHistoryByPlayer('${player.id}')">${playerName}</td>
                     <td class="py-3 px-4 font-semibold text-secondary">${player.rating}</td>
-                    <td class="py-3 px-4 text-emerald-400">${player.wins}</td>
-                    <td class="py-3 px-4 text-red-400">${player.losses}</td>
+                    <td class="py-3 px-4 text-emerald-400 hidden md:table-cell">${player.wins}</td>
+                    <td class="py-3 px-4 text-red-400 hidden md:table-cell">${player.losses}</td>
                 `;
                 tableBody.appendChild(row);
             });
