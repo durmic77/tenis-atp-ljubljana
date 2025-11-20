@@ -49,24 +49,24 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1f2937; /* Originalno temno ozadje */
+            background-color: #1f2937;
             color: #f3f4f6;
             -webkit-tap-highlight-color: transparent;
         }
         
-        /* Originalni stili za tabelo */
+        /* Tabela stili */
         .table-header { background-color: #374151; color: #d1d5db; }
         .table-row-even { background-color: #1f2937; }
         .table-row-odd { background-color: #111827; }
         
         .sponsor-image {
-            max-height: 70px;
+            max-height: 60px;
             width: auto;
             transition: transform 0.3s ease;
             filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07));
         }
 
-        /* Mobile adjustments */
+        /* Mobile fix */
         .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
         #rankingTable { min-width: 100%; }
         
@@ -81,7 +81,11 @@
             .col-name { width: 35%; padding-left: 0.5rem; }
             .col-elo { width: 20%; }
             input, select { font-size: 16px !important; padding: 12px !important; }
-            .sponsor-image { max-height: 50px; margin-bottom: 1rem; }
+            
+            /* Modal fix za mobile */
+            #playerProfileModal .modal-content {
+                max-height: 85vh;
+            }
         }
 
         .loading-spinner {
@@ -99,8 +103,8 @@
             theme: {
                 extend: {
                     colors: {
-                        'primary': '#f59e0b', /* Originalna oranžna */
-                        'secondary': '#10b981', /* Originalna zelena */
+                        'primary': '#f59e0b', 
+                        'secondary': '#10b981', 
                     }
                 }
             }
@@ -153,7 +157,6 @@
                 </button>
                 
                 <div id="createMatchForm" class="hidden p-6 bg-gray-800 border-t border-gray-600">
-                    <h3 class="text-lg font-semibold mb-4 text-blue-400">Podrobnosti termina</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-xs font-medium mb-1 text-gray-400">Igralec 1</label>
@@ -294,29 +297,33 @@
         </div>
     </div>
 
-    <div id="playerProfileModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50 hidden overflow-y-auto">
-        <div class="bg-gray-800 rounded-xl w-full max-w-4xl border border-gray-600 shadow-2xl my-8">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
-                    <h2 id="profilePlayerName" class="text-2xl font-bold text-primary"></h2>
-                    <button onclick="closePlayerProfile()" class="text-gray-400 hover:text-white text-3xl">&times;</button>
-                </div>
+    <div id="playerProfileModal" class="fixed inset-0 bg-black bg-opacity-90 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-xl w-full max-w-4xl border border-gray-600 shadow-2xl flex flex-col max-h-[90vh]">
+            
+            <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-800 rounded-t-xl z-10">
+                <h2 id="profilePlayerName" class="text-xl md:text-2xl font-bold text-primary truncate pr-4"></h2>
+                <button onclick="closePlayerProfile()" class="p-2 hover:bg-gray-700 rounded-full transition">
+                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-4 md:p-6 overflow-y-auto custom-scrollbar">
                 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-gray-700 p-4 rounded-lg text-center shadow-lg">
-                        <div class="text-3xl font-bold text-secondary" id="profileElo"></div>
+                    <div class="bg-gray-700 p-3 md:p-4 rounded-lg text-center shadow-lg">
+                        <div class="text-2xl md:text-3xl font-bold text-secondary" id="profileElo"></div>
                         <div class="text-xs text-gray-400 uppercase mt-1">ELO Rating</div>
                     </div>
-                    <div class="bg-gray-700 p-4 rounded-lg text-center shadow-lg">
-                        <div class="text-3xl font-bold text-emerald-400" id="profileWins"></div>
+                    <div class="bg-gray-700 p-3 md:p-4 rounded-lg text-center shadow-lg">
+                        <div class="text-2xl md:text-3xl font-bold text-emerald-400" id="profileWins"></div>
                         <div class="text-xs text-gray-400 uppercase mt-1">Zmage</div>
                     </div>
-                    <div class="bg-gray-700 p-4 rounded-lg text-center shadow-lg">
-                        <div class="text-3xl font-bold text-red-400" id="profileLosses"></div>
+                    <div class="bg-gray-700 p-3 md:p-4 rounded-lg text-center shadow-lg">
+                        <div class="text-2xl md:text-3xl font-bold text-red-400" id="profileLosses"></div>
                         <div class="text-xs text-gray-400 uppercase mt-1">Porazi</div>
                     </div>
-                    <div class="bg-gray-700 p-4 rounded-lg text-center shadow-lg">
-                        <div class="text-3xl font-bold text-primary" id="profileWinRate"></div>
+                    <div class="bg-gray-700 p-3 md:p-4 rounded-lg text-center shadow-lg">
+                        <div class="text-2xl md:text-3xl font-bold text-primary" id="profileWinRate"></div>
                         <div class="text-xs text-gray-400 uppercase mt-1">% Zmag</div>
                     </div>
                 </div>
@@ -326,7 +333,7 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                     <div>
                         <h3 class="text-lg font-bold text-gray-300 mb-3 border-b border-gray-700 pb-1">Head-to-Head</h3>
-                        <div id="headToHeadList" class="space-y-2 max-h-64 overflow-y-auto pr-2"></div>
+                        <div id="headToHeadList" class="space-y-2 max-h-60 overflow-y-auto pr-2"></div>
                     </div>
                     <div>
                          <h3 class="text-lg font-bold text-gray-300 mb-3 border-b border-gray-700 pb-1">Zadnjih 5</h3>
@@ -337,7 +344,7 @@
                 <div id="statisticsSection" class="mb-6"></div>
                 <div id="surfaceStats" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6"></div>
 
-                <div>
+                <div class="mb-4">
                     <h3 class="text-lg font-bold text-gray-300 mb-3 border-b border-gray-700 pb-1">Razvoj ELO</h3>
                     <div class="bg-gray-700 p-2 rounded-lg h-64"><canvas id="eloChart"></canvas></div>
                 </div>

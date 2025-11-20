@@ -13,14 +13,17 @@ const ACHIEVEMENTS = {
         check: (p) => p.rating >= 1600
     },
     
-    // --- POSEBNE ZMAGE (Underdog & Giant Killer) ---
+    // --- POSEBNE ZMAGE ---
+    // POPRAVEK: Prag dvignjen na 28 točk. 
+    // Pri K=40 dobiš 20 točk za enakovredno zmago. 
+    // Za Underdog (cca 150 ELO razlike) je expected score ~0.3, torej dobiš 40 * 0.7 = 28 točk.
     giant_killer: { 
         name: "Giant Killer", desc: "Zmagaj kot nižje uvrščen (200+ ELO razlike)", icon: "🎯",
-        check: (p, matches) => matches.some(m => m.winnerId === p.id && m.winnerEloChange >= 25) // Cca 25 točk dobiš pri veliki razliki
+        check: (p, matches) => matches.some(m => m.winnerId === p.id && m.winnerEloChange >= 31) 
     },
     underdog: { 
         name: "Underdog", desc: "Zmagaj proti favoritu (150+ ELO razlike)", icon: "🐶",
-        check: (p, matches) => matches.some(m => m.winnerId === p.id && m.winnerEloChange >= 20) 
+        check: (p, matches) => matches.some(m => m.winnerId === p.id && m.winnerEloChange >= 28) 
     },
     
     // --- PERFEKCIJA ---
@@ -56,13 +59,10 @@ const ACHIEVEMENTS = {
         name: "Comeback King", desc: "Zmagaj po izgubljenem prvem setu", icon: "🔄",
         check: (p, matches) => matches.some(m => {
             if (m.winnerId !== p.id) return false;
-            const sets = m.score.split(', '); // "4-6, 6-2, 6-1"
+            const sets = m.score.split(', '); 
             if (sets.length < 2) return false;
-            // Preveri če je prvi set izgubil (torej rezultat ni npr. "6-..." ali "7-...")
             const firstSet = sets[0]; 
             const [w, l] = firstSet.split('-').map(Number);
-            // Ker je zmagovalec tekme 'p', je v zapisu "W-L" prvi set zanj "W-L".
-            // Če je izgubil prvi set, mora biti prva številka manjša od druge.
             return w < l;
         })
     },
@@ -85,7 +85,6 @@ const ACHIEVEMENTS = {
 // --- POMOŽNE FUNKCIJE ---
 
 function checkStreak(player, matches, count) {
-    // Dobimo vse tekme igralca, sortirane od najnovejše (zgoraj) navzdol
     const playerMatches = matches
         .filter(m => m.winnerId === player.id || m.loserId === player.id)
         .sort((a, b) => b.id - a.id);
@@ -96,7 +95,7 @@ function checkStreak(player, matches, count) {
             streak++;
             if (streak >= count) return true;
         } else {
-            streak = 0; // Prekinitev niza
+            streak = 0; 
         }
     }
     return false;
@@ -118,13 +117,12 @@ function checkRivalry(player, matches, count) {
             opponents[opponentId]++;
             if (opponents[opponentId] >= count) return true;
         } else {
-            opponents[opponentId] = 0; // Reset rivalstva ob porazu
+            opponents[opponentId] = 0; 
         }
     }
     return false;
 }
 
-// --- GLAVNA FUNKCIJA ---
 window.checkPlayerAchievements = (pid) => {
     const p = playersData.find(x => x.id === pid);
     if (!p) return [];
@@ -134,7 +132,6 @@ window.checkPlayerAchievements = (pid) => {
         try {
             return ach.check(p, matchesData);
         } catch(e) { 
-            console.warn("Napaka pri achievementu:", key, e);
             return false; 
         }
     });

@@ -209,7 +209,6 @@ async function recordMatch() {
         const { addDoc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
         await addDoc(window.getFirestoreCollectionPaths().matches, newMatch);
 
-        // Reset inputs
         [1,2,3].forEach(i => {
             document.getElementById(`set${i}WinnerScore`).value = '';
             document.getElementById(`set${i}LoserScore`).value = '';
@@ -253,23 +252,31 @@ function renderRanking() {
         let badges = '';
         let subtext = '';
         
-        // Logika za prikaz "weeks at No1"
+        // POPRAVEK LOGIKE ZA TEDNE
         if (rank === 1 && players.length > 0) {
             badges = ` 🐐`;
             const weeks = player.weeksNo1 || 0;
-            if(weeks > 0) {
-                subtext = `<div class="text-[11px] text-yellow-500 font-normal mt-0.5">👑 ${weeks} ${weeks===1?'teden':weeks===2?'tedna':'tednov'} na vrhu</div>`;
+            // Če je weeks > 500 (napaka), se bo resetiralo v ozadju, tukaj ne prikažemo nič
+            if (weeks > 0 && weeks < 500) {
+                if (weeks === 1) {
+                    subtext = `<div class="text-[11px] text-yellow-500 font-bold mt-0.5 animate-pulse">🆕 NOVI VODILNI!</div>`;
+                } else {
+                    subtext = `<div class="text-[11px] text-yellow-500 font-normal mt-0.5">👑 ${weeks} ${weeks===2?'tedna':'tednov'} na vrhu</div>`;
+                }
             }
         } else if (rank === players.length && players.length > 1) {
             badges = ` 🥔`;
             const weeks = player.weeksLast || 0;
-            if(weeks > 0) {
-                subtext = `<div class="text-[11px] text-purple-400 font-normal mt-0.5">⚓ ${weeks} ${weeks===1?'teden':weeks===2?'tedna':'tednov'} na dnu</div>`;
+            if (weeks > 0 && weeks < 500) {
+                if (weeks === 1) {
+                     subtext = `<div class="text-[11px] text-purple-400 font-bold mt-0.5">⚓ NOVI NA DNU!</div>`;
+                } else {
+                     subtext = `<div class="text-[11px] text-purple-400 font-normal mt-0.5">⚓ ${weeks} ${weeks===2?'tedna':'tednov'} na dnu</div>`;
+                }
             }
         }
 
         const row = document.createElement('tr');
-        // Originalni sodo/lihi stil
         row.className = index % 2 === 0 ? 'table-row-even' : 'table-row-odd';
 
         row.innerHTML = `
@@ -390,6 +397,25 @@ async function updateWeeksAtPositions() {
     const now = Date.now();
     const lastUpdate = parseInt(localStorage.getItem('lastRankingUpdate') || '0');
     const WEEK_MS = 7 * 24 * 60 * 60 * 1000; 
+    
+    // POPRAVEK: Čistilec podatkov ob zagonu (če je številka nerealna, resetiraj na 1)
+    // To reši "400 tednov" bug
+    const { doc, updateDoc, writeBatch } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
+    const playersRef = window.getFirestoreCollectionPaths().players;
+    const batch = writeBatch(window.firebaseDb);
+    let fixNeeded = false;
+
+    playersData.forEach(p => {
+        if (p.weeksNo1 > 500 || p.weeksLast > 500) {
+            const ref = doc(playersRef, p.id);
+            batch.update(ref, { 
+                weeksNo1: p.weeksNo1 > 500 ? 1 : p.weeksNo1, 
+                weeksLast: p.weeksLast > 500 ? 1 : p.weeksLast 
+            });
+            fixNeeded = true;
+        }
+    });
+    if (fixNeeded) await batch.commit();
 
     if (now - lastUpdate < WEEK_MS) return;
     if (playersData.length === 0) return;
@@ -397,9 +423,6 @@ async function updateWeeksAtPositions() {
     const sorted = [...playersData].sort((a, b) => b.rating - a.rating);
     const top = sorted[0];
     const bottom = sorted.length > 1 ? sorted[sorted.length - 1] : null;
-
-    const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
-    const playersRef = window.getFirestoreCollectionPaths().players;
 
     try {
         if (top) await updateDoc(doc(playersRef, top.id), { weeksNo1: (top.weeksNo1 || 0) + 1 });
@@ -420,7 +443,6 @@ window.onFirebaseReady = async function() {
     const { onSnapshot } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
     const paths = window.getFirestoreCollectionPaths();
     
-    // Listeners
     onSnapshot(paths.players, (snap) => {
         playersData = snap.docs.map(d => ({...d.data(), docId: d.id, id: d.data().id || d.id}));
         updateWeeksAtPositions();
@@ -439,7 +461,6 @@ window.onFirebaseReady = async function() {
     });
 };
 
-// Helper exports for other files
 window.deleteMatch = deleteMatch;
 window.recordMatch = recordMatch;
 window.addPlayer = addPlayer;
