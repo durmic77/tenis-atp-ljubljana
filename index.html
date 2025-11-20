@@ -2,27 +2,17 @@
 <html lang="sl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1f2937">
     <title>Tenis ATP Ljubljana - Skupna Lestvica</title>
-    <!-- Nalaganje Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-<!-- FAVICON & APP ICONS -->
-<!-- Osnovni favicon -->
-    <link rel="icon" type="image/png" href="sponsors/tenisLJ.png">
-
-<!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="sponsors/tenisLJ.png">
-
-<!-- PWA Manifest (za browser shortcuts) -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#f59e0b">
-
     
-    <!-- Firebase SDK - BREZ AUTHENTICATION -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-        import { getFirestore, doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+        import { getFirestore, collection } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyAxnOW1kSRD1KOqtKFj1CojlPWiCeLf4hI",
@@ -34,855 +24,363 @@
             measurementId: "G-G9Z3Q4Z8KV"
         };
         
-        // Inicializacija BREZ AUTH
         try {
-            window.app = initializeApp(firebaseConfig);
-            window.db = getFirestore(window.app);
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            window.firebaseApp = app;
+            window.firebaseDb = db;
             
-            console.log("✅ Povezava z bazo uspešna!");
-            
-            // Takoj zaženi poslušalce
-            if (window.startFirestoreListeners) {
-                window.startFirestoreListeners();
-            }
+            window.getFirestoreCollectionPaths = () => ({
+                players: collection(db, 'tenis_players'),
+                matches: collection(db, 'tenis_matches'),
+                scheduled_matches: collection(db, 'scheduled_matches')
+            });
+
+            window.ELO_CONSTANTS = { INITIAL_RATING: 1000, K_FACTOR: 40 };
+
+            window.firebaseReady = true;
+            if (window.onFirebaseReady) window.onFirebaseReady();
             
         } catch (e) {
-            console.error("❌ Napaka pri povezavi:", e);
+            console.error("❌ Napaka Firebase:", e);
         }
-        
-        window.getFirestoreCollectionPaths = () => ({
-            players: collection(window.db, 'tenis_players'),
-            matches: collection(window.db, 'tenis_matches'),
-        });
-
-        window.ELO_CONSTANTS = {
-            INITIAL_RATING: 1000,
-            K_FACTOR: 40
-        };
-
-        window.dbRef = {
-            doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot
-        };
     </script>
 
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #1f2937;
+            background-color: #1f2937; /* Originalno temno ozadje */
             color: #f3f4f6;
+            -webkit-tap-highlight-color: transparent;
         }
-        .table-header {
-            background-color: #374151;
-            color: #d1d5db;
-        }
-        .table-row-even {
-            background-color: #1f2937;
-        }
-        .table-row-odd {
-            background-color: #111827;
-        }
+        
+        /* Originalni stili za tabelo */
+        .table-header { background-color: #374151; color: #d1d5db; }
+        .table-row-even { background-color: #1f2937; }
+        .table-row-odd { background-color: #111827; }
+        
         .sponsor-image {
-            max-height: 80px;
+            max-height: 70px;
             width: auto;
-        }
-        .match-row-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        .status-hidden {
-            display: none;
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07));
         }
 
-        /* MOBILE OPTIMIZACIJA */
+        /* Mobile adjustments */
+        .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        #rankingTable { min-width: 100%; }
+        
+        .col-rank { width: 12%; text-align: center; font-size: 1.1rem; }
+        .col-name { width: 40%; text-align: left; padding-left: 1rem; }
+        .col-elo { width: 18%; text-align: center; font-weight: bold; font-size: 1.1rem; }
+        .col-win { width: 15%; text-align: center; }
+        .col-loss { width: 15%; text-align: center; }
+
         @media (max-width: 768px) {
-            /* Tabela - popolnoma optimizirana za mobile */
-            .overflow-x-auto {
-                overflow-x: visible !important;
-            }
-            
-            #rankingTable {
-                font-size: 0.75rem;
-                width: 100% !important;
-            }
-            
-            #rankingTable td, #rankingTable th {
-                padding: 10px 4px;
-                text-align: center;
-            }
-            
-            /* Centriranje vsebine */
-            #rankingTable th:nth-child(1), 
-            #rankingTable td:nth-child(1) {
-                width: 15%;
-                text-align: center;
-            }
-            #rankingTable th:nth-child(2), 
-            #rankingTable td:nth-child(2) {
-                width: 30%;
-                text-align: left;
-                padding-left: 8px;
-            }
-            #rankingTable th:nth-child(3), 
-            #rankingTable td:nth-child(3) {
-                width: 20%;
-                text-align: center;
-            }
-            #rankingTable th:nth-child(4), 
-            #rankingTable td:nth-child(4) {
-                width: 17.5%;
-                text-align: center;
-            }
-            #rankingTable th:nth-child(5), 
-            #rankingTable td:nth-child(5) {
-                width: 17.5%;
-                text-align: center;
-            }
-
-            /* Input polja za rezultate - VEČJA */
-            input[type="number"] {
-                min-height: 44px !important;
-                font-size: 18px !important;
-                padding: 10px 6px !important;
-                background: #4b5563 !important;
-                border: 2px solid #6b7280 !important;
-                color: white !important;
-                width: 100% !important;
-            }
-            
-            /* Placeholder text bolj viden */
-            input::placeholder {
-                color: #d1d5db !important;
-                font-size: 14px;
-                opacity: 0.8;
-            }
-
-            /* Set inputs v en stolpec na mobile */
-            .grid-cols-3 {
-                grid-template-columns: 1fr !important;
-                gap: 12px;
-            }
-            
-            /* Vsak set dobi več prostora */
-            .grid-cols-3 > div {
-                padding: 14px;
-                background: #374151;
-                border-radius: 10px;
-                margin-bottom: 8px;
-            }
-
-            /* Boljši spacing za mobile */
-            .bg-gray-800 {
-                padding: 1rem !important;
-            }
-
-            /* Manjši padding za mobile */
-            body {
-                padding: 0.5rem !important;
-            }
-            
-            /* Skrij horizontalni scroll indikator */
-            .overflow-x-auto::-webkit-scrollbar {
-                display: none;
-            }
+            body { padding: 10px !important; }
+            .col-name { width: 35%; padding-left: 0.5rem; }
+            .col-elo { width: 20%; }
+            input, select { font-size: 16px !important; padding: 12px !important; }
+            .sponsor-image { max-height: 50px; margin-bottom: 1rem; }
         }
 
-        /* Desktop ostane popolnoma enak */
-        @media (min-width: 769px) {
-            /* Vse ostane kot je */
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #f59e0b;
+            border-radius: 50%;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
         }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'primary': '#f59e0b',
-                        'secondary': '#10b981',
+                        'primary': '#f59e0b', /* Originalna oranžna */
+                        'secondary': '#10b981', /* Originalna zelena */
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="p-4 md:p-8 min-h-screen">
+<body class="p-4 md:p-8 min-h-screen pb-20">
 
     <div class="max-w-4xl mx-auto">
-        <h1 class="text-4xl font-extrabold text-primary mb-6 text-center">Tenis ATP Ljubljana - Skupna Lestvica</h1>
+        <h1 class="text-3xl md:text-4xl font-extrabold text-primary mb-6 text-center tracking-tight drop-shadow-md">Tenis ATP Ljubljana</h1>
         
-        <!-- Skrit status (samo za debugging) -->
-        <div id="authStatus" class="status-hidden"></div>
-
-        <!-- Prikaz sporočil -->
-        <div id="messageBox" class="p-3 mb-4 rounded-lg hidden text-center font-medium"></div>
-
-        <!-- 1. Lestvica Igralcev -->
-        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl mb-8">
-            <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Aktivna Lestvica</h2>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm rounded-lg">
-                    <thead>
-                        <tr class="table-header uppercase">
-                            <th class="py-3 px-2 rounded-tl-lg">Mesto</th>
-                            <th class="py-3 px-2">Igralec</th>
-                            <th class="py-3 px-2">ELO</th>
-                            <th class="py-3 px-2">Zmage</th>
-                            <th class="py-3 px-2 rounded-tr-lg">Porazi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rankingTable">
-                        <tr><td colspan="5" class="text-center py-4 text-gray-400">Nalaganje podatkov...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+        <div id="loadingIndicator" class="text-center py-8">
+            <div class="loading-spinner"></div>
+            <p class="text-gray-400 mt-4">Nalagam podatke...</p>
         </div>
 
-        <!-- 2. Zabeleži Tekmo -->
-        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl mb-8">
-            <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Zabeleži Novo Tekmo</h2>
+        <div id="messageBox" class="hidden p-4 mb-6 rounded-lg text-center font-medium shadow-lg"></div>
 
-            <!-- Igralca (v dveh stolpcih) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                    <label for="winnerSelect" class="block text-sm font-medium mb-1 text-gray-300">Zmagovalec:</label>
-                    <select id="winnerSelect" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-secondary transition">
-                        <option value="0">Izberi zmagovalca...</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="loserSelect" class="block text-sm font-medium mb-1 text-gray-300">Poraženec:</label>
-                    <select id="loserSelect" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-secondary transition">
-                        <option value="0">Izberi poraženca...</option>
-                    </select>
-                </div>
-            </div>
-
-            <h3 class="text-xl font-semibold mb-3 text-gray-300 border-b border-gray-700 pb-1">Podrobnosti in Tip Tekme</h3>
+        <div id="mainContent" class="hidden space-y-8">
             
-            <!-- Vrsta tekme -->
-            <div class="mb-4">
-                <label for="matchTypeSelect" class="block text-sm font-medium mb-1 text-gray-300">Vrsta Tekme:</label>
-                <select id="matchTypeSelect" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary transition">
-                    <option value="regular">Celotna Tekma (100% ELO)</option>
-                    <option value="short">Kratka Igra (50% ELO, npr. 4-3, 4-1)</option>
-                    <option value="draw">Neodločeno (1-1 v setih, 0% ELO)</option>
-                </select>
-            </div>
-
-            <!-- Rezultat po setih -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium mb-2 text-gray-300">Rezultat po Setih (Zmaga-Poraz):</label>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Set 1 -->
-                    <div class="flex items-center space-x-2 bg-gray-700 p-2 rounded-lg">
-                        <span class="text-gray-400 font-medium">Set 1:</span>
-                        <input type="number" id="set1WinnerScore" placeholder="Zmag" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
-                        <span class="text-gray-400">-</span>
-                        <input type="number" id="set1LoserScore" placeholder="Por" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
-                    </div>
-                    <!-- Set 2 -->
-                    <div class="flex items-center space-x-2 bg-gray-700 p-2 rounded-lg">
-                        <span class="text-gray-400 font-medium">Set 2:</span>
-                        <input type="number" id="set2WinnerScore" placeholder="Zmag" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
-                        <span class="text-gray-400">-</span>
-                        <input type="number" id="set2LoserScore" placeholder="Por" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
-                    </div>
-                    <!-- Set 3 (Opcijsko) -->
-                    <div class="flex items-center space-x-2 bg-gray-700 p-2 rounded-lg">
-                        <span class="text-gray-400 font-medium">Set 3:</span>
-                        <input type="number" id="set3WinnerScore" placeholder="Zmag" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
-                        <span class="text-gray-400">-</span>
-                        <input type="number" id="set3LoserScore" placeholder="Por" class="w-1/2 p-2 bg-gray-600 rounded-md text-white placeholder-gray-400 text-center" min="0" max="7">
-                    </div>
+            <div class="bg-gray-800 rounded-xl shadow-2xl overflow-hidden border border-gray-700">
+                <div class="p-4 border-b border-gray-600 bg-gray-700">
+                    <h2 class="text-xl font-bold text-gray-100">🏆 Aktivna Lestvica</h2>
                 </div>
-                <p class="text-xs text-gray-400 mt-2">Vnesite samo številke. Pustite prazno, če se set ni igral.</p>
-            </div>
-
-            <!-- Datum in Podlaga (v dveh stolpcih) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                    <label for="matchDateInput" class="block text-sm font-medium mb-1 text-gray-300">Datum:</label>
-                    <input type="date" id="matchDateInput" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary transition">
-                </div>
-                <div>
-                    <label for="surfaceSelect" class="block text-sm font-medium mb-1 text-gray-300">Podlaga:</label>
-                    <select id="surfaceSelect" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary transition">
-                        <option value="Pesek">Pesek (Clay)</option>
-                        <option value="Trda">Trda (Hard)</option>
-                        <option value="Trava">Trava (Grass)</option>
-                        <option value="Dvorana">Dvorana (Indoor)</option>
-                        <option value="Drugo">Drugo</option>
-                    </select>
+                <div class="table-container">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="table-header uppercase text-xs tracking-wider">
+                                <th class="py-3 px-2 col-rank">#</th>
+                                <th class="py-3 px-2 col-name">Igralec</th>
+                                <th class="py-3 px-2 col-elo text-primary">ELO</th>
+                                <th class="py-3 px-2 col-win text-emerald-400">W</th>
+                                <th class="py-3 px-2 col-loss text-red-400">L</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankingTable">
+                            <tr><td colspan="5" class="text-center py-8 text-gray-500">Nalaganje...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <button onclick="recordMatch()" class="w-full bg-secondary hover:bg-emerald-600 text-gray-900 font-bold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg">
-                Posodobi Lestvico in Zabeleži
-            </button>
-        </div>
-
-        <!-- 3. Zgodovina Tekem -->
-        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl mb-8" id="matchHistoryContainer">
-            <h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">Zgodovina Tekem</h2>
-            <div class="text-center py-4 text-gray-400">Nalaganje zgodovine...</div>
-        </div>
-        
-        <!-- 4. Dodaj Igralca -->
-        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl mb-8">
-            <button onclick="toggleAddPlayerForm()" id="togglePlayerBtn" class="w-full bg-primary hover:bg-yellow-600 text-gray-900 font-bold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg flex items-center justify-center">
-                <span id="togglePlayerText">Dodaj Novega Igralca</span>
-            </button>
-            
-            <div id="addPlayerForm" class="mt-4 hidden border border-primary/50 p-4 rounded-lg">
-                <h3 class="text-xl font-semibold mb-3 text-primary">Vnos novega igralca</h3>
-                <input type="text" id="newPlayerName" placeholder="Ime igralca..." class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary transition">
-                <button onclick="addPlayer()" class="w-full mt-3 bg-secondary hover:bg-emerald-600 text-gray-900 font-bold py-2 rounded-lg transition shadow-md">
-                    Potrdi Dodajanje Igralca
+            <div class="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
+                 <button onclick="toggleCreateMatchForm()" id="toggleCreateMatchBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 transition flex items-center justify-between group">
+                    <span id="toggleCreateMatchText" class="flex items-center gap-2">
+                        <span class="bg-white/20 rounded-full p-1">📅</span>
+                        Načrtuj Novo Tekmo
+                    </span>
+                    <span class="text-blue-200 text-sm">Rezervacija &rarr;</span>
                 </button>
-            </div>
-        </div>
-
-        <!-- 5. SPONZORJI -->
-        <div class="mt-8 pt-4 border-t border-gray-700 text-center">
-            <h3 class="text-lg font-medium text-gray-400 mb-4">Sponzorirano s strani:</h3>
-            <div class="flex flex-col md:flex-row justify-center items-center space-y-4 md:space-y-0 md:space-x-8">
-                <!-- Sponzor 1 -->
-                <img src="sponsors/kolektor-etra-2.png" alt="Sponzor 1" class="sponsor-image filter drop-shadow-lg" onerror="this.onerror=null; this.src='https://placehold.co/300x80/1f2937/d1d5db?text=Sponzor+logo+1';" />
-                <!-- Sponzor 2 -->
-                <img src="sponsors/Union-Radler-00.png" alt="Sponzor 2" class="sponsor-image filter drop-shadow-lg" onerror="this.onerror=null; this.src='https://placehold.co/300x80/1f2937/d1d5db?text=Sponzor+logo+2';" />
-		<!-- Sponzor 3 -->
-                <img src="sponsors/Marlboro.png" alt="Sponzor 2" class="sponsor-image filter drop-shadow-lg" onerror="this.onerror=null; this.src='https://placehold.co/300x80/1f2937/d1d5db?text=Sponzor+logo+3';" />
-            </div>
-        </div>
-
-    </div>
-
-    <!-- GLAVNA JS LOGIKA -->
-    <!-- [OSTALA JS KODA OSTANE ENAKA - samo kopiraj iz prejšnje kode] -->
-
-    <!-- GLAVNA JS LOGIKA -->
-    <script type="module">
-        const { doc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot } = window.dbRef || {};
-        const { INITIAL_RATING, K_FACTOR } = window.ELO_CONSTANTS || {};
-        
-        let playersData = []; 
-        let matchesData = []; 
-        let filteredPlayerId = null; 
-        let showAllHistory = false; 
-
-        function showMessage(message, type = 'success') {
-            const box = document.getElementById('messageBox');
-            box.textContent = message;
-            box.className = 'p-3 mb-4 rounded-lg text-center font-medium';
-            if (type === 'success') {
-                box.classList.add('bg-green-600', 'text-white');
-            } else if (type === 'error') {
-                box.classList.add('bg-red-600', 'text-white');
-            } else {
-                box.classList.add('bg-blue-600', 'text-white');
-            }
-            box.classList.remove('hidden');
-            setTimeout(() => {
-                box.classList.add('hidden');
-            }, 5000);
-        }
-
-        function toggleAddPlayerForm() {
-            const form = document.getElementById('addPlayerForm');
-            const buttonText = document.getElementById('togglePlayerText');
-            const isHidden = form.classList.toggle('hidden');
-            
-            if (isHidden) {
-                buttonText.textContent = 'Dodaj Novega Igralca';
-            } else {
-                buttonText.textContent = 'Skrij Vnos Igralca';
-            }
-        }
-        
-        function setDefaultDate() {
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0'); 
-            const dd = String(today.getDate()).padStart(2, '0');
-            const dateInput = document.getElementById('matchDateInput');
-            if (dateInput) dateInput.value = `${yyyy}-${mm}-${dd}`;
-        }
-        
-        // ELO PRERAČUN
-        function calculateEloFromMatches(currentPlayers, currentMatches) {
-            const playerMap = new Map(currentPlayers.map(p => ([
-                p.id, 
-                { id: p.id, name: p.name, rating: INITIAL_RATING, wins: 0, losses: 0 }
-            ])));
-
-            const matches = [...currentMatches].sort((a, b) => a.id - b.id);
-
-            matches.forEach(match => {
-                const winner = playerMap.get(match.winnerId);
-                const loser = playerMap.get(match.loserId);
                 
-                if (!winner || !loser) return;
-                
-                let currentKFactor = match.type === 'short' ? K_FACTOR / 2 : K_FACTOR;
-                let finalRatingChange = 0;
-                
-                if (match.type !== 'draw') {
-                    const expectedScoreA = 1 / (1 + Math.pow(10, (loser.rating - winner.rating) / 400));
-                    const ratingChange = currentKFactor * (1 - expectedScoreA);
-                    finalRatingChange = Math.round(ratingChange);
-
-                    winner.rating = Math.round(winner.rating + ratingChange);
-                    loser.rating = Math.round(loser.rating - ratingChange);
-
-                    winner.wins += 1;
-                    loser.losses += 1;
-                }
-                
-                match.winnerNewRating = winner.rating;
-                match.loserNewRating = loser.rating;
-                match.winnerEloChange = finalRatingChange;
-                match.loserEloChange = -finalRatingChange;
-            });
-            
-            return playerMap;
-        }
-
-        async function recalculateEloAndSave() {
-            const updatedPlayerMap = calculateEloFromMatches(playersData, matchesData);
-            const playersRef = window.getFirestoreCollectionPaths().players;
-            
-            const playerUpdates = [];
-            updatedPlayerMap.forEach((updatedPlayer, id) => {
-                const existingPlayer = playersData.find(p => p.id === id);
-                if (existingPlayer) {
-                    playerUpdates.push({
-                        docRef: doc(playersRef, id),
-                        data: {
-                            name: existingPlayer.name,
-                            rating: updatedPlayer.rating,
-                            wins: updatedPlayer.wins,
-                            losses: updatedPlayer.losses,
-                            id: updatedPlayer.id
-                        }
-                    });
-                }
-            });
-
-            await Promise.all(playerUpdates.map(async (update) => {
-                try {
-                    await setDoc(update.docRef, update.data);
-                } catch (e) {
-                    console.error(`Napaka pri posodabljanju igralca ${update.data.name}:`, e);
-                }
-            }));
-        }
-
-        // FIREBASE OPERACIJE
-        async function addPlayer() {
-            const input = document.getElementById('newPlayerName');
-            const name = input.value.trim();
-
-            if (!name) {
-                showMessage('Vnesite ime igralca.', 'error');
-                return;
-            }
-
-            if (playersData.some(p => p.name.toLowerCase() === name.toLowerCase())) {
-                showMessage(`Igralec "${name}" že obstaja.`, 'error');
-                return;
-            }
-
-            const playersRef = window.getFirestoreCollectionPaths().players;
-            
-            try {
-                const docRef = await addDoc(playersRef, {
-                    name: name,
-                    rating: INITIAL_RATING,
-                    wins: 0,
-                    losses: 0
-                });
-                
-                await updateDoc(doc(playersRef, docRef.id), { id: docRef.id });
-
-                input.value = '';
-                toggleAddPlayerForm();
-                showMessage(`Igralec "${name}" je bil dodan!`, 'success');
-            } catch (e) {
-                console.error("Napaka pri dodajanju igralca:", e);
-                showMessage('Napaka pri dodajanju igralca', 'error');
-            }
-        }
-
-        async function recordMatch() {
-            const winnerId = document.getElementById('winnerSelect').value;
-            const loserId = document.getElementById('loserSelect').value;
-            const dateInput = document.getElementById('matchDateInput').value;
-            const surface = document.getElementById('surfaceSelect').value;
-            const matchType = document.getElementById('matchTypeSelect').value;
-
-            const scoreInputs = [
-                { w: document.getElementById('set1WinnerScore').value, l: document.getElementById('set1LoserScore').value },
-                { w: document.getElementById('set2WinnerScore').value, l: document.getElementById('set2LoserScore').value },
-                { w: document.getElementById('set3WinnerScore').value, l: document.getElementById('set3LoserScore').value },
-            ];
-            
-            let scores = [];
-            scoreInputs.forEach(s => {
-                if (s.w.trim() !== '' && s.l.trim() !== '') {
-                    scores.push(`${s.w.trim()}-${s.l.trim()}`);
-                }
-            });
-            const scoreString = scores.join(', ');
-
-            if (winnerId === '0' || loserId === '0' || winnerId === loserId) {
-                showMessage('Izberite veljavnega zmagovalca in poraženca.', 'error');
-                return;
-            }
-            if (scoreString === '' && matchType !== 'draw') {
-                 showMessage('Vnesite rezultat vsaj prvega seta (ali izberite Neodločeno).', 'error');
-                 return;
-            }
-
-            const winner = playersData.find(p => p.id === winnerId);
-            const loser = playersData.find(p => p.id === loserId);
-
-            if (!winner || !loser) {
-                showMessage('Igralec ni najden v spominu. Osvežite stran.', 'error');
-                return;
-            }
-            
-            const timestamp = Date.now();
-            let dateString;
-            
-            if (dateInput) {
-                const d = new Date(dateInput + 'T12:00:00'); 
-                dateString = d.toLocaleDateString('sl-SI', { year: 'numeric', month: '2-digit', day: '2-digit' });
-            } else {
-                dateString = new Date().toLocaleDateString('sl-SI') + ' ' + new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
-            }
-            
-            const newMatch = {
-                id: timestamp,
-                date: dateString,
-                winnerId: winnerId,
-                loserId: loserId,
-                winnerName: winner.name,
-                loserName: loser.name,
-                score: matchType === 'draw' ? '1-1 v setih' : scoreString,
-                surface: surface,
-                type: matchType,
-            };
-
-            try {
-                const matchesRef = window.getFirestoreCollectionPaths().matches;
-                await addDoc(matchesRef, newMatch);
-
-                // Počisti polja
-                document.getElementById('set1WinnerScore').value = '';
-                document.getElementById('set1LoserScore').value = '';
-                document.getElementById('set2WinnerScore').value = '';
-                document.getElementById('set2LoserScore').value = '';
-                document.getElementById('set3WinnerScore').value = '';
-                document.getElementById('set3LoserScore').value = '';
-                
-                document.getElementById('winnerSelect').value = '0';
-                document.getElementById('loserSelect').value = '0';
-
-                showMessage(`Tekma zabeležena! Lestvica se posodablja.`, 'success');
-
-            } catch (e) {
-                console.error("Napaka pri zapisovanju tekme:", e);
-                showMessage('Napaka pri beleženju tekme', 'error');
-            }
-        }
-
-        async function deleteMatch(docId) {
-            try {
-                const matchesRef = window.getFirestoreCollectionPaths().matches;
-                await deleteDoc(doc(matchesRef, docId));
-                showMessage('Tekma uspešno izbrisana', 'success');
-            } catch (e) {
-                console.error("Napaka pri brisanju tekme:", e);
-                showMessage('Napaka pri brisanju tekme', 'error');
-            }
-        }
-
-        // RENDER FUNKCIJE
-        function getSortedPlayers() {
-            return [...playersData].sort((a, b) => b.rating - a.rating);
-        }
-
-        function renderRanking() {
-            const tableBody = document.getElementById('rankingTable');
-            const players = getSortedPlayers();
-            tableBody.innerHTML = '';
-
-            if (players.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-400">Trenutno ni registriranih igralcev. Dodajte prvega igralca.</td></tr>`;
-                return;
-            }
-
-            const totalPlayers = players.length;
-
-            players.forEach((player, index) => {
-                const rank = index + 1;
-                let playerName = player.name;
-                
-                // Ikone za Goat in Potato :)
-                if (rank === 1 && totalPlayers > 0) {
-                    playerName = `🐐 ${playerName}`;
-                } else if (rank === totalPlayers && totalPlayers > 1) {
-                    playerName = `🥔 ${playerName}`;
-                }
-
-                const row = document.createElement('tr');
-                row.className = index % 2 === 0 ? 'table-row-even' : 'table-row-odd';
-
-                row.innerHTML = `
-                    <td class="py-3 px-4 font-bold text-lg text-primary">${rank}.</td>
-                    <td class="py-3 px-4 font-medium cursor-pointer hover:text-primary transition" onclick="window.filterHistoryByPlayer('${player.id}')">${playerName}</td>
-                    <td class="py-3 px-4 font-semibold text-secondary">${player.rating}</td>
-                    <td class="py-3 px-4 text-emerald-400">${player.wins}</td>
-                    <td class="py-3 px-4 text-red-400">${player.losses}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-
-        function renderMatchHistory() {
-            const containerDiv = document.getElementById('matchHistoryContainer');
-            
-            const currentPlayers = JSON.parse(JSON.stringify(playersData));
-            const calculatedMatches = JSON.parse(JSON.stringify(matchesData));
-            calculateEloFromMatches(currentPlayers, calculatedMatches);
-
-            const allMatches = calculatedMatches.sort((a, b) => b.id - a.id);
-            let filteredMatches = allMatches;
-            let playerName = '';
-
-            if (filteredPlayerId) {
-                const player = playersData.find(p => p.id === filteredPlayerId);
-                if (player) {
-                    filteredMatches = allMatches.filter(m => m.winnerId === filteredPlayerId || m.loserId === filteredPlayerId);
-                    playerName = player.name;
-                } else {
-                    filteredPlayerId = null;
-                    showAllHistory = false;
-                    renderAll();
-                    return;
-                }
-            }
-            
-            const totalMatches = filteredMatches.length;
-            const matchesToDisplayCount = showAllHistory ? totalMatches : Math.min(totalMatches, 10);
-            const matchesToDisplay = filteredMatches.slice(0, matchesToDisplayCount);
-            
-            let htmlContent = '';
-
-            const titleText = filteredPlayerId 
-                ? `Zgodovina Tekem (${playerName})` 
-                : (showAllHistory ? 'Zgodovina Tekem (Vse)' : 'Zgodovina Tekem (Zadnjih 10)');
-
-            htmlContent += `<h2 class="text-2xl font-semibold mb-4 border-b border-gray-700 pb-2">${titleText}</h2>`;
-            
-            htmlContent += `<div id="historyControls" class="mb-4 space-y-2">`;
-            
-            if (filteredPlayerId) {
-                htmlContent += `
-                    <div class="bg-blue-900/50 p-3 rounded-lg flex justify-between items-center text-sm text-gray-100">
-                        <span class="font-medium">Prikazane so samo tekme za igralca: ${playerName}</span>
-                        <button onclick="window.clearPlayerFilter()" class="text-red-400 hover:text-red-300 font-medium transition flex items-center space-x-1">
-                            <span>Počisti filter</span>
-                        </button>
+                <div id="createMatchForm" class="hidden p-6 bg-gray-800 border-t border-gray-600">
+                    <h3 class="text-lg font-semibold mb-4 text-blue-400">Podrobnosti termina</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-medium mb-1 text-gray-400">Igralec 1</label>
+                            <select id="scheduledPlayer1" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium mb-1 text-gray-400">Igralec 2</label>
+                            <select id="scheduledPlayer2" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white"></select>
+                        </div>
                     </div>
-                `;
-            }
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <input type="date" id="scheduledDate" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                        <input type="time" id="scheduledTime" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                    </div>
+                     <div class="mb-4">
+                        <input type="text" id="scheduledCourt" placeholder="Teren (npr. Št. 1)" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <select id="scheduledSurface" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                            <option value="Pesek">Pesek</option>
+                            <option value="Trda">Trda</option>
+                            <option value="Trava">Trava</option>
+                            <option value="Dvorana">Dvorana</option>
+                        </select>
+                         <select id="scheduledMatchType" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                            <option value="regular">Redna tekma</option>
+                            <option value="friendly">Prijateljska</option>
+                        </select>
+                    </div>
+                    <input type="text" id="scheduledNotes" placeholder="Opombe..." class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white mb-6 text-sm">
 
-            if (totalMatches > 10 && !filteredPlayerId) {
-                htmlContent += `
-                    <button onclick="window.toggleHistoryView()" class="w-full text-center py-2 rounded-lg ${showAllHistory ? 'bg-gray-600 hover:bg-gray-500' : 'bg-primary/20 hover:bg-primary/30'} text-white font-medium transition">
-                        ${showAllHistory ? 'Prikaži le zadnjih 10 tekem' : `Prikaži vseh ${totalMatches} tekem`}
+                    <button onclick="createNewScheduledMatch()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg shadow-lg">
+                        Potrdi Termin
                     </button>
-                `;
-            }
-            htmlContent += `</div>`;
-            
-            htmlContent += `<div id="matchListDiv" class="space-y-3">`;
+                </div>
+            </div>
 
-            if (totalMatches === 0) {
-                htmlContent += `<p class="text-center py-4 text-gray-400">Trenutno ni zgodovine tekem ${filteredPlayerId ? 'za tega igralca' : ''}.</p>`;
-            } else {
-                
-                const formatEloChange = (change) => {
-                    const changeNum = Math.round(change);
-                    if (changeNum > 0) return `(+${changeNum})`;
-                    if (changeNum < 0) return `(${changeNum})`;
-                    return `(0)`;
-                };
-                
-                matchesToDisplay.forEach(match => {
-                    let resultText;
-                    let eloDetail;
-                    let scoreDisplay = match.score || 'Rezultat ni vpisan';
+            <div class="bg-gray-800 rounded-xl shadow-2xl border border-gray-700">
+                <div class="p-4 border-b border-gray-700 bg-gray-700/50">
+                    <h2 class="text-xl font-bold text-gray-100">🗓️ Prihajajoče Tekme</h2>
+                </div>
+                <div id="scheduledMatchesList" class="p-4 space-y-3">
+                    <div class="text-center py-4 text-gray-500">Nalaganje...</div>
+                </div>
+            </div>
 
-                    const docId = match.docId;
-                    
-                    if (match.type === 'draw') {
-                        resultText = `<span class="font-bold text-gray-300">${match.winnerName}</span> in <span class="font-bold text-gray-300">${match.loserName}</span> sta igrala neodločeno`;
-                        eloDetail = `<span class="text-gray-400 font-medium">Oba igralca:</span> ${match.winnerNewRating} (ELO ostaja nespremenjen)`;
-                    } else {
-                        const eloChangeA = formatEloChange(match.winnerEloChange);
-                        const eloChangeB = formatEloChange(match.loserEloChange);
-                        
-                        const eloColorA = match.type === 'short' ? 'text-primary' : 'text-secondary';
-                        const eloColorB = 'text-red-400';
-                        
-                        resultText = `<span class="font-bold ${eloColorA}">${match.winnerName}</span> je premagal <span class="font-bold ${eloColorB}">${match.loserName}</span>`;
-                        
-                        eloDetail = `
-                            <span class="${eloColorA} font-medium">Zmagovalec:</span> ${match.winnerNewRating} ${eloChangeA}<br>
-                            <span class="${eloColorB} font-medium">Poraženec:</span> ${match.loserNewRating} ${eloChangeB}
-                        `;
-                    }
-                    
-                    let typeBadgeClass = match.type === 'short' ? 'bg-yellow-800' : 
-                                         match.type === 'draw' ? 'bg-blue-800' : 'bg-emerald-800';
-                    
-                    htmlContent += `
-                        <div class="p-4 bg-gray-700 rounded-lg shadow-inner">
-                            <div class="flex justify-between items-center text-sm text-gray-400 mb-2 border-b border-gray-600 pb-1">
-                                <span>${match.date}</span>
-                                <div class="flex items-center space-x-3">
-                                    <span class="font-medium text-primary">Podlaga: ${match.surface || 'Neznano'}</span>
-                                    <button onclick="window.deleteMatch('${docId}')" class="text-red-500 hover:text-red-400 transition" aria-label="Izbriši tekmo">
-                                        🗑️
-                                    </button>
-                                </div>
-                            </div>
-                            <p class="text-base flex justify-between items-center">
-                                ${resultText}
-                                <span class="text-sm font-semibold text-gray-300 ml-2">(${scoreDisplay})</span>
-                            </p>
-                            <div class="match-row-content mt-1">
-                                <p class="text-sm">
-                                    ${eloDetail}
-                                </p>
-                                <span class="text-xs font-semibold px-2 py-0.5 rounded-full ${typeBadgeClass} text-white/90">
-                                    ${match.type === 'short' ? 'Kratka' : match.type === 'draw' ? 'Neodločeno' : 'Regularna'}
-                                </span>
+            <div class="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 p-6">
+                <h2 class="text-xl font-bold mb-6 text-gray-100 border-b border-gray-700 pb-2">✍️ Vpiši Rezultat</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-gray-400">ZMAGOVALEC</label>
+                        <select id="winnerSelect" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-secondary"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium mb-1 text-gray-400">PORAŽENEC</label>
+                        <select id="loserSelect" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-red-500"></select>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900/50 p-4 rounded-lg mb-6 border border-gray-700">
+                    <label class="block text-xs font-medium mb-3 text-gray-400 text-center">REZULTAT PO SETIH</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="text-center space-y-1">
+                            <span class="text-[10px] text-gray-500">1. SET</span>
+                            <div class="flex gap-1 justify-center">
+                                <input type="number" id="set1WinnerScore" placeholder="W" class="w-10 p-2 bg-gray-600 rounded text-center text-white font-bold">
+                                <input type="number" id="set1LoserScore" placeholder="L" class="w-10 p-2 bg-gray-600 rounded text-center text-white font-bold">
                             </div>
                         </div>
-                    `;
-                });
-            }
+                        <div class="text-center space-y-1">
+                            <span class="text-[10px] text-gray-500">2. SET</span>
+                            <div class="flex gap-1 justify-center">
+                                <input type="number" id="set2WinnerScore" placeholder="W" class="w-10 p-2 bg-gray-600 rounded text-center text-white font-bold">
+                                <input type="number" id="set2LoserScore" placeholder="L" class="w-10 p-2 bg-gray-600 rounded text-center text-white font-bold">
+                            </div>
+                        </div>
+                        <div class="text-center space-y-1">
+                            <span class="text-[10px] text-gray-500">3. SET</span>
+                            <div class="flex gap-1 justify-center">
+                                <input type="number" id="set3WinnerScore" placeholder="W" class="w-10 p-2 bg-gray-600 rounded text-center text-white font-bold">
+                                <input type="number" id="set3LoserScore" placeholder="L" class="w-10 p-2 bg-gray-600 rounded text-center text-white font-bold">
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-            htmlContent += `</div>`;
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                    <div class="col-span-2 md:col-span-1">
+                        <input type="date" id="matchDateInput" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                    </div>
+                    <select id="surfaceSelect" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm">
+                        <option value="Pesek">Pesek</option>
+                        <option value="Trda">Trda</option>
+                        <option value="Trava">Trava</option>
+                        <option value="Dvorana">Dvorana</option>
+                    </select>
+                    <select id="matchTypeSelect" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm">
+                        <option value="regular">Redna (100%)</option>
+                        <option value="short">Kratka (50%)</option>
+                        <option value="draw">Neodločeno</option>
+                    </select>
+                </div>
+
+                <button onclick="recordMatch()" class="w-full bg-secondary hover:bg-emerald-600 text-gray-900 font-bold py-3 rounded-lg shadow-lg transition duration-200">
+                    Posodobi Lestvico in Zabeleži
+                </button>
+            </div>
+
+            <div class="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 p-6" id="matchHistoryContainer">
+                <h2 class="text-xl font-bold mb-4 pb-2 border-b border-gray-700">📜 Zgodovina Tekem</h2>
+                <div class="text-center py-4 text-gray-500">Nalaganje...</div>
+            </div>
             
-            if (!showAllHistory && totalMatches > 10 && !filteredPlayerId) {
-                 htmlContent += `<p class="text-center mt-4 text-sm text-gray-500">Prikazanih je zadnjih 10 tekem. Kliknite gumb zgoraj za prikaz vseh.</p>`;
-            }
+            <div class="bg-gray-800 rounded-xl shadow-2xl border border-gray-700">
+                <button onclick="toggleAddPlayerForm()" class="w-full bg-primary hover:bg-yellow-600 text-gray-900 font-bold py-3 rounded-lg transition flex justify-center items-center gap-2">
+                    <span id="togglePlayerText">Dodaj Novega Igralca</span>
+                </button>
+                
+                <div id="addPlayerForm" class="hidden p-4 border-t border-gray-600">
+                    <div class="flex gap-2">
+                        <input type="text" id="newPlayerName" placeholder="Ime igralca..." class="flex-1 p-3 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                        <button onclick="addPlayer()" class="bg-secondary hover:bg-emerald-600 text-gray-900 font-bold px-6 rounded-lg">
+                            Potrdi
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-4 border-t border-gray-700 text-center">
+                <h3 class="text-sm font-medium text-gray-400 mb-4">Sponzorji</h3>
+                <div class="flex flex-wrap justify-center gap-8 items-center">
+                    <img src="sponsors/kolektor-etra-2.png" alt="Sponzor 1" class="sponsor-image" onerror="this.style.display='none'"/>
+                    <img src="sponsors/Union-Radler-00.png" alt="Sponzor 2" class="sponsor-image" onerror="this.style.display='none'"/>
+                    <img src="sponsors/Marlboro.png" alt="Sponzor 3" class="sponsor-image" onerror="this.style.display='none'"/>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="playerProfileModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50 hidden overflow-y-auto">
+        <div class="bg-gray-800 rounded-xl w-full max-w-4xl border border-gray-600 shadow-2xl my-8">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+                    <h2 id="profilePlayerName" class="text-2xl font-bold text-primary"></h2>
+                    <button onclick="closePlayerProfile()" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+                </div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gray-700 p-4 rounded-lg text-center shadow-lg">
+                        <div class="text-3xl font-bold text-secondary" id="profileElo"></div>
+                        <div class="text-xs text-gray-400 uppercase mt-1">ELO Rating</div>
+                    </div>
+                    <div class="bg-gray-700 p-4 rounded-lg text-center shadow-lg">
+                        <div class="text-3xl font-bold text-emerald-400" id="profileWins"></div>
+                        <div class="text-xs text-gray-400 uppercase mt-1">Zmage</div>
+                    </div>
+                    <div class="bg-gray-700 p-4 rounded-lg text-center shadow-lg">
+                        <div class="text-3xl font-bold text-red-400" id="profileLosses"></div>
+                        <div class="text-xs text-gray-400 uppercase mt-1">Porazi</div>
+                    </div>
+                    <div class="bg-gray-700 p-4 rounded-lg text-center shadow-lg">
+                        <div class="text-3xl font-bold text-primary" id="profileWinRate"></div>
+                        <div class="text-xs text-gray-400 uppercase mt-1">% Zmag</div>
+                    </div>
+                </div>
+
+                <div id="achievementsSection" class="mb-6"></div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-300 mb-3 border-b border-gray-700 pb-1">Head-to-Head</h3>
+                        <div id="headToHeadList" class="space-y-2 max-h-64 overflow-y-auto pr-2"></div>
+                    </div>
+                    <div>
+                         <h3 class="text-lg font-bold text-gray-300 mb-3 border-b border-gray-700 pb-1">Zadnjih 5</h3>
+                         <div id="recentMatches" class="space-y-2"></div>
+                    </div>
+                </div>
+
+                <div id="statisticsSection" class="mb-6"></div>
+                <div id="surfaceStats" class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6"></div>
+
+                <div>
+                    <h3 class="text-lg font-bold text-gray-300 mb-3 border-b border-gray-700 pb-1">Razvoj ELO</h3>
+                    <div class="bg-gray-700 p-2 rounded-lg h-64"><canvas id="eloChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="resultModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gray-800 rounded-xl w-full max-w-md border border-gray-600 p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">Vnos Rezultata</h2>
+                <button onclick="closeResultModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
             
-            containerDiv.innerHTML = htmlContent;
-        }
-
-        function renderSelects() {
-            const winnerSelect = document.getElementById('winnerSelect');
-            const loserSelect = document.getElementById('loserSelect');
-            const players = getSortedPlayers();
-
-            winnerSelect.innerHTML = '<option value="0">Izberi zmagovalca...</option>';
-            loserSelect.innerHTML = '<option value="0">Izberi poraženca...</option>';
-
-            players.forEach(player => {
-                const optionWinner = document.createElement('option');
-                optionWinner.value = player.id;
-                optionWinner.textContent = player.name;
-                winnerSelect.appendChild(optionWinner);
-
-                const optionLoser = document.createElement('option');
-                optionLoser.value = player.id;
-                optionLoser.textContent = player.name;
-                loserSelect.appendChild(optionLoser);
-            });
-        }
-
-        function renderAll() {
-            renderRanking();
-            renderSelects();
-            renderMatchHistory();
-        }
-
-        // FIREBASE POSLUŠALCI - POPRAVLJENO
-        window.startFirestoreListeners = function() {
-            console.log("🚀 Zaganjam Firebase poslušalce...");
+            <div id="resultMatchInfo" class="mb-4 p-3 bg-gray-700 rounded-lg text-center text-sm text-gray-300"></div>
             
-            const { players: playersRef, matches: matchesRef } = window.getFirestoreCollectionPaths();
+            <div class="mb-4">
+                <label class="block text-xs text-gray-400 mb-1">Zmagovalec</label>
+                <select id="resultWinner" class="w-full p-3 bg-gray-700 border border-gray-500 rounded-lg text-white"></select>
+            </div>
             
-            // Poslušalec za igralce
-            onSnapshot(playersRef, (snapshot) => {
-                console.log("📥 Podatki igralcev posodobljeni:", snapshot.docs.length);
-                playersData = snapshot.docs.map(doc => ({
-                    ...doc.data(),
-                    docId: doc.id,
-                }));
-                renderAll();
-            }, (error) => {
-                console.error("❌ Napaka pri nalaganju igralcev:", error);
-            });
+            <div class="mb-4">
+                <label class="block text-xs text-gray-400 mb-1 text-center">Rezultat</label>
+                <div class="flex justify-center gap-2">
+                     <div class="flex flex-col items-center"><input type="number" id="resultSet1Winner" class="w-12 p-2 bg-gray-600 rounded text-center font-bold" placeholder="W"><input type="number" id="resultSet1Loser" class="w-12 p-2 bg-gray-600 rounded text-center mt-1" placeholder="L"></div>
+                     <div class="flex flex-col items-center"><input type="number" id="resultSet2Winner" class="w-12 p-2 bg-gray-600 rounded text-center font-bold" placeholder="W"><input type="number" id="resultSet2Loser" class="w-12 p-2 bg-gray-600 rounded text-center mt-1" placeholder="L"></div>
+                     <div class="flex flex-col items-center"><input type="number" id="resultSet3Winner" class="w-12 p-2 bg-gray-600 rounded text-center font-bold" placeholder="W"><input type="number" id="resultSet3Loser" class="w-12 p-2 bg-gray-600 rounded text-center mt-1" placeholder="L"></div>
+                </div>
+            </div>
+            
+            <select id="resultMatchType" class="w-full p-3 bg-gray-700 border border-gray-500 rounded-lg text-white text-sm mb-4">
+                <option value="regular">Redna tekma</option>
+                <option value="short">Kratka tekma</option>
+            </select>
+            
+            <button onclick="submitMatchResult()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg">Potrdi Rezultat</button>
+        </div>
+    </div>
 
-            // Poslušalec za tekme
-            onSnapshot(matchesRef, (snapshot) => {
-                console.log("📥 Podatki tekem posodobljeni:", snapshot.docs.length);
-                matchesData = snapshot.docs.map(doc => ({
-                    ...doc.data(),
-                    docId: doc.id,
-                }));
-                renderAll();
-                recalculateEloAndSave();
-            }, (error) => {
-                console.error("❌ Napaka pri nalaganju tekem:", error);
-            });
-        };
-
-        // GLOBALNE FUNKCIJE
-        window.filterHistoryByPlayer = (playerId) => {
-            filteredPlayerId = playerId;
-            showAllHistory = true;
-            renderAll();
-        };
-
-        window.clearPlayerFilter = () => {
-            filteredPlayerId = null;
-            showAllHistory = false;
-            renderAll();
-        };
-
-        window.toggleHistoryView = () => {
-            showAllHistory = !showAllHistory;
-            renderMatchHistory();
-        };
-
-        window.deleteMatch = deleteMatch;
-        window.recordMatch = recordMatch;
-        window.addPlayer = addPlayer;
-        window.toggleAddPlayerForm = toggleAddPlayerForm;
-
-        // ZAGON
-        window.onload = () => {
-            setDefaultDate();
-            // Če se Firebase inicializacija zaključi preden je ta skripta naložena
-            if (window.db && !playersData.length) {
-                window.startFirestoreListeners();
-            }
-        };
-
-        // Samodejni zagon če je Firebase že pripravljen
-        if (window.db) {
-            setTimeout(() => {
-                window.startFirestoreListeners();
-            }, 1000);
-        }
-    </script>
+    <script src="js/core.js"></script>
+    <script src="js/playerProfiles.js"></script>
+    <script src="js/achievements.js"></script>
+    <script src="js/statistics.js"></script>
+    <script src="js/scheduledMatches.js"></script>
 </body>
 </html>
-
