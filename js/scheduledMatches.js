@@ -5,28 +5,24 @@ const SCHEDULED_MATCH_STATUS = {
     CANCELLED: 'cancelled'
 };
 
-// 1. Upravljanje obrazca (Odpiranje/Zapiranje)
+// 1. Upravljanje obrazca
 function toggleCreateMatchForm() {
     const form = document.getElementById('createMatchForm');
     const btnText = document.getElementById('toggleCreateMatchText');
     
-    // Preklop vidnosti
     const isHidden = form.classList.toggle('hidden');
     
     if (isHidden) {
-        // Gumb ko je obrazec zaprt
         btnText.innerHTML = `
             <span class="bg-white/20 rounded-full p-1">📅</span>
             Načrtuj Novo Tekmo
         `;
     } else {
-        // Gumb ko je obrazec odprt
         btnText.textContent = '✖️ Prekliči vnos';
         setDefaultScheduledDate();
     }
 }
 
-// 2. Nastavitev privzetega datuma in ure
 function setDefaultScheduledDate() {
     const now = new Date();
     const dateInput = document.getElementById('scheduledDate');
@@ -35,18 +31,15 @@ function setDefaultScheduledDate() {
     if (dateInput && !dateInput.value) {
         dateInput.value = now.toISOString().split('T')[0];
     }
-    
     if (timeInput && !timeInput.value) {
-        // Nastavi na naslednjo polno uro ali privzeto 18:00
         timeInput.value = '18:00';
     }
 }
 
-// 3. SHRANJEVANJE NOVE TEKME (Glavna funkcija)
+// 2. SHRANJEVANJE NOVE TEKME (Popravljeno in robustno)
 async function createNewScheduledMatch() {
     console.log("Začenjam shranjevanje termina...");
 
-    // A. Pridobivanje vrednosti iz obrazca
     const player1Id = document.getElementById('scheduledPlayer1').value;
     const player2Id = document.getElementById('scheduledPlayer2').value;
     const date = document.getElementById('scheduledDate').value;
@@ -56,34 +49,29 @@ async function createNewScheduledMatch() {
     const matchType = document.getElementById('scheduledMatchType').value;
     const notes = document.getElementById('scheduledNotes').value;
 
-    // B. Validacija (Preverjanje napak)
+    // Validacija
     if (player1Id === '0' || player2Id === '0') {
         alert('Prosim, izberi oba igralca.');
         return;
     }
-    
     if (player1Id === player2Id) {
-        alert('Igralec ne more igrati sam s seboj. Izberi različna igralca.');
+        alert('Igralca morata biti različna.');
         return;
     }
-    
     if (!date || !time) {
         alert('Datum in ura sta obvezna.');
         return;
     }
 
-    // C. Iskanje podatkov o igralcih
-    // Uporabljamo globalno spremenljivko playersData iz core.js
     const p1 = playersData.find(p => p.id === player1Id);
     const p2 = playersData.find(p => p.id === player2Id);
 
     if (!p1 || !p2) {
-        console.error("Napaka: Podatki o igralcu niso najdeni.", { p1, p2, player1Id, player2Id });
-        alert('Napaka pri iskanju igralcev. Poskusi osvežiti stran.');
+        console.error("Napaka: Podatki o igralcu niso najdeni.");
+        alert('Napaka pri iskanju igralcev. Osveži stran.');
         return;
     }
 
-    // D. Priprava objekta za bazo
     const matchData = {
         player1Id, 
         player2Id,
@@ -96,27 +84,34 @@ async function createNewScheduledMatch() {
         matchType, 
         notes: notes || '',
         status: SCHEDULED_MATCH_STATUS.SCHEDULED,
-        createdAt: Date.now() // Timestamp za sortiranje
+        createdAt: Date.now()
     };
 
-    // E. Shranjevanje v Firebase
     try {
-        // Dinamični import za Firebase funkcijo
-        const { addDoc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
+        // POPRAVEK: Uvozimo vse potrebno direktno tukaj, da smo neodvisni od index.html napak
+        const { getFirestore, collection, addDoc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
         
-        // Uporaba globalne poti do kolekcije
-        const collectionRef = window.getFirestoreCollectionPaths().scheduled_matches;
+        // Zagotovimo, da imamo DB referenco
+        let db = window.firebaseDb;
+        if (!db && window.firebaseApp) {
+            db = getFirestore(window.firebaseApp);
+        }
+
+        if (!db) {
+            throw new Error("Povezava z bazo ni najdena (window.firebaseDb is missing).");
+        }
+
+        // Direktna referenca na kolekcijo, da preprečimo napake "undefined"
+        const collectionRef = collection(db, 'scheduled_matches');
         
         await addDoc(collectionRef, matchData);
         
         console.log("✅ Uspešno shranjeno!");
         
-        // Zapri obrazec in počisti polja
         toggleCreateMatchForm();
         document.getElementById('scheduledCourt').value = '';
         document.getElementById('scheduledNotes').value = '';
         
-        // Pokaži obvestilo (če imaš funkcijo showMessage v core.js)
         if (window.showMessage) {
             window.showMessage('Tekma uspešno načrtovana!', 'success');
         } else {
@@ -125,16 +120,16 @@ async function createNewScheduledMatch() {
 
     } catch (e) {
         console.error("❌ KRITIČNA NAPAKA pri shranjevanju:", e);
-        alert('Prišlo je do napake pri shranjevanju v bazo. Preveri konzolo za podrobnosti.');
+        // Izpis točne napake uporabniku za lažje debuggiranje
+        alert(`Napaka pri shranjevanju: ${e.message}`);
     }
 }
 
-// 4. IZRIS SEZNAMA NAČRTOVANIH TEKEM
+// 3. IZRIS SEZNAMA
 function renderScheduledMatches() {
     const container = document.getElementById('scheduledMatchesList');
     if(!container) return;
 
-    // Filtriraj samo aktivne tekme in jih sortiraj po datumu
     const activeMatches = scheduledMatchesData
         .filter(m => m.status === SCHEDULED_MATCH_STATUS.SCHEDULED)
         .sort((a, b) => {
@@ -149,7 +144,6 @@ function renderScheduledMatches() {
     }
     
     container.innerHTML = activeMatches.map(match => {
-        // Lepši izpis datuma
         const dateObj = new Date(match.scheduledDate);
         const dateStr = dateObj.toLocaleDateString('sl-SI', { day: 'numeric', month: 'long' });
         
@@ -182,14 +176,18 @@ function renderScheduledMatches() {
     }).join('');
 }
 
-// 5. PREKLIC TEKME
+// 4. PREKLIC
 async function cancelMatch(id) {
     if(!confirm("Ali res želiš preklicati to tekmo?")) return;
     
     try {
-        const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
-        const matchRef = doc(window.getFirestoreCollectionPaths().scheduled_matches, id);
+        const { getFirestore, doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
         
+        // Robusten DB dostop
+        let db = window.firebaseDb;
+        if (!db && window.firebaseApp) db = getFirestore(window.firebaseApp);
+
+        const matchRef = doc(db, 'scheduled_matches', id);
         await updateDoc(matchRef, { status: 'cancelled' });
         
         if (window.showMessage) window.showMessage('Tekma preklicana.', 'info');
@@ -199,7 +197,7 @@ async function cancelMatch(id) {
     }
 }
 
-// 6. LOGIKA ZA MODAL (Prenos podatkov v vnos rezultata)
+// 5. LOGIKA ZA MODAL
 let currentScheduledMatchId = null;
 
 window.openResultModal = function(scheduleId) {
@@ -209,13 +207,11 @@ window.openResultModal = function(scheduleId) {
 
     const modal = document.getElementById('resultModal');
     
-    // Izpis info v modalu
     document.getElementById('resultMatchInfo').innerHTML = `
         <div class="font-bold text-white">${match.player1Name} vs ${match.player2Name}</div>
         <div class="text-xs mt-1 text-gray-400">${match.scheduledDate} • ${match.court}</div>
     `;
 
-    // Nastavi dropdown za zmagovalca samo na ta dva igralca
     const winnerSelect = document.getElementById('resultWinner');
     winnerSelect.innerHTML = `
         <option value="0">Izberi zmagovalca...</option>
@@ -223,37 +219,23 @@ window.openResultModal = function(scheduleId) {
         <option value="${match.player2Id}">${match.player2Name}</option>
     `;
 
-    // Resetiraj polja za rezultat
     ['resultSet1Winner','resultSet1Loser','resultSet2Winner','resultSet2Loser','resultSet3Winner','resultSet3Loser'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.value = '';
     });
     
-    // Odpri modal
     modal.classList.remove('hidden');
 };
 
 window.closeResultModal = function() {
     document.getElementById('resultModal').classList.add('hidden');
     currentScheduledMatchId = null;
-    
-    // Resetiraj dropdown nazaj na vse igralce (za ročni vnos)
     if (window.renderSelects) window.renderSelects();
 };
 
-// 7. POTRDITEV REZULTATA IZ MODALA
+// 6. POTRDITEV REZULTATA
 window.submitMatchResult = async function() {
-    // Če nimamo ID-ja načrtovane tekme, gre za navaden vnos (ignoriraj to funkcijo, kliče se recordMatch iz core.js? Ne, modal ima svoj gumb)
-    // POZOR: Ta funkcija je specifična za modal, ki se odpre iz "Načrtovanih tekem"
-    // Če uporabnik uporablja glavno formo na dnu strani, se kliče recordMatch() iz core.js
-    
-    if (!currentScheduledMatchId) {
-        // To je varovalka, če bi kdo klical to funkcijo narobe. 
-        // Če modal nima povezanega ID-ja, morda želimo uporabiti logiko iz core.js, 
-        // ampak tukaj bomo obravnavali samo zaključevanje načrtovane tekme.
-        console.error("Ni ID-ja načrtovane tekme.");
-        return;
-    }
+    if (!currentScheduledMatchId) return;
 
     const scheduleId = currentScheduledMatchId;
     const match = scheduledMatchesData.find(m => m.docId === scheduleId);
@@ -267,7 +249,6 @@ window.submitMatchResult = async function() {
     const loserId = winnerId === match.player1Id ? match.player2Id : match.player1Id;
     const matchType = document.getElementById('resultMatchType').value;
     
-    // Zberi rezultate
     const scores = [];
     for(let i=1; i<=3; i++) {
         const w = document.getElementById(`resultSet${i}Winner`).value;
@@ -281,12 +262,15 @@ window.submitMatchResult = async function() {
     }
 
     try {
-        const { addDoc, updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
+        const { getFirestore, collection, addDoc, doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js");
         
+        let db = window.firebaseDb;
+        if (!db && window.firebaseApp) db = getFirestore(window.firebaseApp);
+
         // 1. Dodaj v odigrane tekme
-        await addDoc(window.getFirestoreCollectionPaths().matches, {
+        await addDoc(collection(db, 'tenis_matches'), {
             id: Date.now(),
-            date: match.scheduledDate, // Uporabi datum, ko je bila planirana (ali današnji?) - Ponavadi planiran datum.
+            date: match.scheduledDate, 
             winnerId, 
             loserId,
             winnerName: playersData.find(p => p.id === winnerId).name,
@@ -297,19 +281,18 @@ window.submitMatchResult = async function() {
         });
 
         // 2. Označi načrtovano tekmo kot zaključeno
-        const scheduleRef = doc(window.getFirestoreCollectionPaths().scheduled_matches, scheduleId);
-        await updateDoc(scheduleRef, { status: 'completed' });
+        await updateDoc(doc(db, 'scheduled_matches', scheduleId), { status: 'completed' });
 
         closeResultModal();
         if (window.showMessage) window.showMessage('Rezultat shranjen in tekma zaključena!', 'success');
 
     } catch (e) {
         console.error("Napaka pri shranjevanju rezultata:", e);
-        alert("Napaka pri shranjevanju.");
+        alert(`Napaka: ${e.message}`);
     }
 };
 
-// Export funkcij v globalni window scope
+// Export funkcij
 window.toggleCreateMatchForm = toggleCreateMatchForm;
 window.createNewScheduledMatch = createNewScheduledMatch;
 window.renderScheduledMatches = renderScheduledMatches;
